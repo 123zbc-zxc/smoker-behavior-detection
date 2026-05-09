@@ -83,6 +83,28 @@ datasets/reports/**/suspicious_labels.json
 *.xlsx
 *.xls
 
+# Graduation thesis / defense private materials
+docs/paper/
+docs/superpowers/
+docs/*thesis*
+docs/*paper*
+docs/*论文*
+docs/*毕业*
+docs/*答辩*
+docs/*attention_mechanism*
+docs/*smoke_smokingperson*
+docs/*VERIFICATION*
+docs/*72H_ACTION*
+docs/project_overall_report_*.md
+docs/verification_and_improvement_plan_*.md
+docs/Claude_*.md
+第5章_*.md
+论文章节*.md
+scripts/*thesis*.py
+scripts/*docx*.py
+scripts/rewrite_thesis*.py
+tests/test_align_thesis_format_to_sample.py
+
 # Logs
 *.log
 *.txt
