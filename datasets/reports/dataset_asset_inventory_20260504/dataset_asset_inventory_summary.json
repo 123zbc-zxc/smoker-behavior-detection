@@ -1,0 +1,99 @@
+{
+  "datasets_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets",
+  "output_dir": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\reports\\dataset_asset_inventory_20260504",
+  "hash_images": false,
+  "totals": {
+    "image_files": 91242,
+    "video_files": 113,
+    "archive_files": 5,
+    "label_or_text_files": 90766,
+    "valid_yolo_boxes": 123528,
+    "empty_yolo_label_files": 274,
+    "invalid_yolo_lines": 41
+  },
+  "stages": [
+    {
+      "stage": "raw",
+      "root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\raw",
+      "total_files": 1794,
+      "total_bytes": 822886079,
+      "file_counts": {
+        "metadata": 7,
+        "label_or_text": 50,
+        "other": 786,
+        "archive": 3,
+        "video": 113,
+        "yaml": 1,
+        "image": 834
+      },
+      "bytes_by_type": {
+        "metadata": 5058385,
+        "label_or_text": 9514,
+        "other": 426515,
+        "archive": 729111627,
+        "video": 53915983,
+        "yaml": 347,
+        "image": 34363708
+      },
+      "detected_dataset_roots": 1,
+      "image_files_total": 834,
+      "video_files_total": 113,
+      "archive_files_total": 3,
+      "label_or_text_files_total": 50
+    },
+    {
+      "stage": "interim",
+      "root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\interim",
+      "total_files": 59926,
+      "total_bytes": 1334486914,
+      "file_counts": {
+        "archive": 2,
+        "metadata": 7,
+        "label_or_text": 29914,
+        "other": 4,
+        "yaml": 3,
+        "image": 29996
+      },
+      "bytes_by_type": {
+        "archive": 43794418,
+        "metadata": 135643,
+        "label_or_text": 1586455,
+        "other": 284602,
+        "yaml": 692,
+        "image": 1288685104
+      },
+      "detected_dataset_roots": 8,
+      "image_files_total": 29996,
+      "video_files_total": 0,
+      "archive_files_total": 2,
+      "label_or_text_files_total": 29914
+    },
+    {
+      "stage": "final",
+      "root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\final",
+      "total_files": 121220,
+      "total_bytes": 2848673488,
+      "file_counts": {
+        "other": 6,
+        "label_or_text": 60802,
+        "image": 60412
+      },
+      "bytes_by_type": {
+        "other": 13025232,
+        "label_or_text": 3217795,
+        "image": 2832430461
+      },
+      "detected_dataset_roots": 4,
+      "image_files_total": 60412,
+      "video_files_total": 0,
+      "archive_files_total": 0,
+      "label_or_text_files_total": 60802
+    }
+  ],
+  "duplicate_summary": {
+    "enabled": false,
+    "hashed_images": 0,
+    "duplicate_groups": 0,
+    "duplicate_images": 0
+  }
+}

@@ -1,0 +1,13 @@
+# Current 3-class dataset built from available sources:
+# - AI Studio smoke-only set -> class 2 (smoke)
+# - Roboflow smoking set -> class 1 (smoking_person)
+# - Added cigarette set -> class 0 (cigarette)
+# - Added smoke-only set -> class 2 (smoke)
+path: datasets/final/smoking_yolo_3cls_full
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: cigarette
+  1: smoking_person
+  2: smoke

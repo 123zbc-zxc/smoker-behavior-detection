@@ -1,0 +1,24 @@
+{
+  "source_zip": "datasets\\raw\\roboflow_smoking_drinking\\SmokingAndDrinking.v1i.yolov8.zip",
+  "output_root": "datasets\\interim\\roboflow_remap",
+  "files_in_zip": 36550,
+  "image_files_extracted": {
+    "test": 732,
+    "train": 16797,
+    "val": 740
+  },
+  "label_files_written": {
+    "test": 732,
+    "train": 16797,
+    "val": 740
+  },
+  "empty_label_files": 48,
+  "original_class_counts": {
+    "0": 22327,
+    "1": 3258
+  },
+  "remapped_class_counts": {
+    "1": 25585
+  },
+  "unknown_class_counts": {}
+}

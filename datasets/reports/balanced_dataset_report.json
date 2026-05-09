@@ -1,0 +1,37 @@
+{
+  "source_root": "datasets\\final\\smoking_yolo_3cls_full",
+  "output_root": "datasets\\final\\smoke_bal",
+  "seed": 42,
+  "multiplier": 1.5,
+  "smoking_person_target": 10562,
+  "original_class_counts": {
+    "2": 7041,
+    "0": 7021,
+    "1": 25579
+  },
+  "balanced_class_counts": {
+    "2": 7041,
+    "0": 7021,
+    "1": 10562
+  },
+  "original_image_count": 28915,
+  "balanced_image_count": 18236,
+  "priority_image_count": 10700,
+  "optional_class1_only_count": 18215,
+  "optional_class1_only_added": 7536,
+  "images_per_split": {
+    "train": 14416,
+    "val": 1895,
+    "test": 1925
+  },
+  "selected_images_per_split": {
+    "train": 14416,
+    "val": 1895,
+    "test": 1925
+  },
+  "class_names": {
+    "0": "cigarette",
+    "1": "smoking_person",
+    "2": "smoke"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "random_seed": 42,
+  "aistudio_split_ratio": [
+    0.7,
+    0.15,
+    0.15
+  ],
+  "include_smoke_legacy": true,
+  "images_per_split": {
+    "train": 24289,
+    "val": 2344,
+    "test": 2336
+  },
+  "labels_per_split": {
+    "train": 24289,
+    "val": 2344,
+    "test": 2336
+  },
+  "source_counts": {
+    "aistudio": 783,
+    "roboflow": 18269,
+    "cigarette": 4663,
+    "smoke": 4898,
+    "smoke_legacy": 356
+  },
+  "class_counts": {
+    "2": 7041,
+    "1": 25585,
+    "0": 7021
+  },
+  "empty_labels": 48,
+  "missing_pairs": []
+}

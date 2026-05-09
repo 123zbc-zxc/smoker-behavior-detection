@@ -1,0 +1,31 @@
+# Colab hard-case fine-tuning line. Copy the current champion checkpoint to
+# /content/smoker_detection/weights_imported/best.pt before running this config.
+model: weights_imported/best.pt
+data: configs/data_smoking_balanced_colab.yaml
+epochs: 40
+imgsz: 640
+batch: 32
+optimizer: AdamW
+lr0: 0.0003
+patience: 12
+device: 0
+workers: 2
+cache: disk
+amp: true
+cos_lr: true
+close_mosaic: 10
+pretrained: true
+seed: 43
+deterministic: true
+plots: true
+project: runs/train
+name: yolov8n_colab_640_hard
+mosaic: 0.55
+scale: 0.2
+translate: 0.05
+degrees: 0.0
+shear: 0.0
+copy_paste: 0.05
+mixup: 0.0
+erasing: 0.1
+fliplr: 0.5

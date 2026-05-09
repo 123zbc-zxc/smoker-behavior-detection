@@ -1,0 +1,31 @@
+# Continue from the current hard fine-tuned model after adding external
+# cigarette-focused Roboflow data. Use Google Colab GPU for this run.
+model: weights_imported/best.pt
+data: configs/data_smoking_balanced_plus_rfcsd4.yaml
+epochs: 80
+imgsz: 640
+batch: 32
+optimizer: AdamW
+lr0: 0.00018
+patience: 20
+device: 0
+workers: 2
+cache: disk
+amp: true
+cos_lr: true
+close_mosaic: 15
+pretrained: true
+seed: 44
+deterministic: true
+plots: true
+project: runs/train
+name: yolov8n_colab_640_plus_rfcsd4
+mosaic: 0.35
+scale: 0.18
+translate: 0.04
+degrees: 0.0
+shear: 0.0
+copy_paste: 0.03
+mixup: 0.0
+erasing: 0.05
+fliplr: 0.5

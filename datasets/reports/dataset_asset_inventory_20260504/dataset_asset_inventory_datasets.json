@@ -1,0 +1,431 @@
+[
+  {
+    "stage": "raw",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\raw\\roboflow_cigarette_smoke_detection_v4_20260504\\extracted",
+    "relative_root": "datasets\\raw\\roboflow_cigarette_smoke_detection_v4_20260504\\extracted",
+    "image_files_total": 51,
+    "label_txt_total": 46,
+    "names": {
+      "0": "Cigar in hand",
+      "1": "Cigar near mouth",
+      "2": "cold breath vapor",
+      "3": "sunlight"
+    },
+    "yolo": {
+      "label_files": 46,
+      "empty_label_files": 3,
+      "valid_box_lines": 41,
+      "invalid_lines": 2,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "0:Cigar in hand": 20,
+        "1:Cigar near mouth": 21
+      }
+    },
+    "split_images": {
+      "train": 5,
+      "val": 0,
+      "valid": 0,
+      "test": 46
+    },
+    "split_labels": {
+      "train": 0,
+      "val": 0,
+      "valid": 0,
+      "test": 46
+    }
+  },
+  {
+    "stage": "interim",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\interim\\hardcase_labeling_workspace_20260503",
+    "relative_root": "datasets\\interim\\hardcase_labeling_workspace_20260503",
+    "image_files_total": 120,
+    "label_txt_total": 120,
+    "names": {
+      "0": "cigarette",
+      "1": "smoking_person",
+      "2": "smoke"
+    },
+    "yolo": {
+      "label_files": 120,
+      "empty_label_files": 70,
+      "valid_box_lines": 89,
+      "invalid_lines": 0,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "0:cigarette": 71,
+        "2:smoke": 18
+      }
+    },
+    "split_images": {
+      "train": 120,
+      "val": 0,
+      "valid": 0,
+      "test": 0
+    },
+    "split_labels": {
+      "train": 120,
+      "val": 0,
+      "valid": 0,
+      "test": 0
+    }
+  },
+  {
+    "stage": "interim",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\interim\\cigarette_yolo",
+    "relative_root": "datasets\\interim\\cigarette_yolo",
+    "image_files_total": 4663,
+    "label_txt_total": 4663,
+    "names": {},
+    "yolo": {
+      "label_files": 4663,
+      "empty_label_files": 0,
+      "valid_box_lines": 7021,
+      "invalid_lines": 0,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "0:0": 7021
+      }
+    },
+    "split_images": {
+      "train": 3269,
+      "val": 697,
+      "valid": 0,
+      "test": 697
+    },
+    "split_labels": {
+      "train": 3269,
+      "val": 697,
+      "valid": 0,
+      "test": 697
+    }
+  },
+  {
+    "stage": "interim",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\interim\\hmdb51_smoke_hardcase_pseudo",
+    "relative_root": "datasets\\interim\\hmdb51_smoke_hardcase_pseudo",
+    "image_files_total": 90,
+    "label_txt_total": 180,
+    "names": {
+      "0": "cigarette",
+      "1": "smoking_person",
+      "2": "smoke"
+    },
+    "yolo": {
+      "label_files": 180,
+      "empty_label_files": 128,
+      "valid_box_lines": 33,
+      "invalid_lines": 33,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "0:cigarette": 33
+      }
+    },
+    "split_images": {
+      "train": 90,
+      "val": 0,
+      "valid": 0,
+      "test": 0
+    },
+    "split_labels": {
+      "train": 180,
+      "val": 0,
+      "valid": 0,
+      "test": 0
+    }
+  },
+  {
+    "stage": "interim",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\interim\\roboflow_cigarette_smoke_detection_v4_yolo3cls",
+    "relative_root": "datasets\\interim\\roboflow_cigarette_smoke_detection_v4_yolo3cls",
+    "image_files_total": 413,
+    "label_txt_total": 413,
+    "names": {
+      "0": "cigarette",
+      "1": "smoking_person",
+      "2": "smoke"
+    },
+    "yolo": {
+      "label_files": 413,
+      "empty_label_files": 25,
+      "valid_box_lines": 388,
+      "invalid_lines": 0,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "0:cigarette": 388
+      }
+    },
+    "split_images": {
+      "train": 284,
+      "val": 83,
+      "valid": 0,
+      "test": 46
+    },
+    "split_labels": {
+      "train": 284,
+      "val": 83,
+      "valid": 0,
+      "test": 46
+    }
+  },
+  {
+    "stage": "interim",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\interim\\aistudio_yolo",
+    "relative_root": "datasets\\interim\\aistudio_yolo",
+    "image_files_total": 783,
+    "label_txt_total": 783,
+    "names": {},
+    "yolo": {
+      "label_files": 783,
+      "empty_label_files": 0,
+      "valid_box_lines": 816,
+      "invalid_lines": 0,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "2:2": 816
+      }
+    },
+    "split_images": {
+      "train": 0,
+      "val": 0,
+      "valid": 0,
+      "test": 0
+    },
+    "split_labels": {
+      "train": 0,
+      "val": 0,
+      "valid": 0,
+      "test": 0
+    }
+  },
+  {
+    "stage": "interim",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\interim\\roboflow_remap",
+    "relative_root": "datasets\\interim\\roboflow_remap",
+    "image_files_total": 18269,
+    "label_txt_total": 18269,
+    "names": {},
+    "yolo": {
+      "label_files": 18269,
+      "empty_label_files": 48,
+      "valid_box_lines": 25579,
+      "invalid_lines": 6,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "1:1": 25579
+      }
+    },
+    "split_images": {
+      "train": 16797,
+      "val": 740,
+      "valid": 0,
+      "test": 732
+    },
+    "split_labels": {
+      "train": 16797,
+      "val": 740,
+      "valid": 0,
+      "test": 732
+    }
+  },
+  {
+    "stage": "interim",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\interim\\smoke_legacy_yolo",
+    "relative_root": "datasets\\interim\\smoke_legacy_yolo",
+    "image_files_total": 356,
+    "label_txt_total": 356,
+    "names": {},
+    "yolo": {
+      "label_files": 356,
+      "empty_label_files": 0,
+      "valid_box_lines": 455,
+      "invalid_lines": 0,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "2:2": 455
+      }
+    },
+    "split_images": {
+      "train": 248,
+      "val": 54,
+      "valid": 0,
+      "test": 54
+    },
+    "split_labels": {
+      "train": 248,
+      "val": 54,
+      "valid": 0,
+      "test": 54
+    }
+  },
+  {
+    "stage": "interim",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\interim\\smoke_yolo",
+    "relative_root": "datasets\\interim\\smoke_yolo",
+    "image_files_total": 4898,
+    "label_txt_total": 4898,
+    "names": {},
+    "yolo": {
+      "label_files": 4898,
+      "empty_label_files": 0,
+      "valid_box_lines": 5770,
+      "invalid_lines": 0,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "2:2": 5770
+      }
+    },
+    "split_images": {
+      "train": 3427,
+      "val": 736,
+      "valid": 0,
+      "test": 735
+    },
+    "split_labels": {
+      "train": 3427,
+      "val": 736,
+      "valid": 0,
+      "test": 735
+    }
+  },
+  {
+    "stage": "final",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\final\\smoking_yolo_3cls_full",
+    "relative_root": "datasets\\final\\smoking_yolo_3cls_full",
+    "image_files_total": 28915,
+    "label_txt_total": 28915,
+    "names": {},
+    "yolo": {
+      "label_files": 28915,
+      "empty_label_files": 0,
+      "valid_box_lines": 39641,
+      "invalid_lines": 0,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "2:2": 7041,
+        "0:0": 7021,
+        "1:1": 25579
+      }
+    },
+    "split_images": {
+      "train": 24237,
+      "val": 2342,
+      "valid": 0,
+      "test": 2336
+    },
+    "split_labels": {
+      "train": 24237,
+      "val": 2342,
+      "valid": 0,
+      "test": 2336
+    }
+  },
+  {
+    "stage": "final",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\final\\smoking_yolo_3cls_balanced",
+    "relative_root": "datasets\\final\\smoking_yolo_3cls_balanced",
+    "image_files_total": 11940,
+    "label_txt_total": 11940,
+    "names": {},
+    "yolo": {
+      "label_files": 11940,
+      "empty_label_files": 0,
+      "valid_box_lines": 15762,
+      "invalid_lines": 0,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "2:2": 7041,
+        "0:0": 7021,
+        "1:1": 1700
+      }
+    },
+    "split_images": {
+      "train": 8648,
+      "val": 1642,
+      "valid": 0,
+      "test": 1650
+    },
+    "split_labels": {
+      "train": 8648,
+      "val": 1642,
+      "valid": 0,
+      "test": 1650
+    }
+  },
+  {
+    "stage": "final",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\final\\smoking_yolo_3cls",
+    "relative_root": "datasets\\final\\smoking_yolo_3cls",
+    "image_files_total": 1321,
+    "label_txt_total": 1711,
+    "names": {},
+    "yolo": {
+      "label_files": 1711,
+      "empty_label_files": 0,
+      "valid_box_lines": 3309,
+      "invalid_lines": 0,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "1:1": 3067,
+        "2:2": 242
+      }
+    },
+    "split_images": {
+      "train": 6,
+      "val": 465,
+      "valid": 0,
+      "test": 850
+    },
+    "split_labels": {
+      "train": 6,
+      "val": 855,
+      "valid": 0,
+      "test": 850
+    }
+  },
+  {
+    "stage": "final",
+    "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\final\\smoke_bal",
+    "relative_root": "datasets\\final\\smoke_bal",
+    "image_files_total": 18236,
+    "label_txt_total": 18236,
+    "names": {},
+    "yolo": {
+      "label_files": 18236,
+      "empty_label_files": 0,
+      "valid_box_lines": 24624,
+      "invalid_lines": 0,
+      "unknown_classes": 0,
+      "out_of_range_boxes": 0,
+      "class_counts": {
+        "2:2": 7041,
+        "0:0": 7021,
+        "1:1": 10562
+      }
+    },
+    "split_images": {
+      "train": 14416,
+      "val": 1895,
+      "valid": 0,
+      "test": 1925
+    },
+    "split_labels": {
+      "train": 14416,
+      "val": 1895,
+      "valid": 0,
+      "test": 1925
+    }
+  }
+]

@@ -1,0 +1,107 @@
+{
+  "random_seed": 42,
+  "datasets": {
+    "cigarette_new": {
+      "enabled": true,
+      "zip_path": "Cigarette.yolov8.zip",
+      "output_root": "datasets\\interim\\cigarette_yolo",
+      "split_ratio": [
+        0.7,
+        0.15,
+        0.15
+      ],
+      "images_written": {
+        "train": 3269,
+        "test": 697,
+        "val": 697
+      },
+      "labels_written": {
+        "train": 3269,
+        "test": 697,
+        "val": 697
+      },
+      "empty_labels_after_remap": 278,
+      "malformed_lines": 152,
+      "out_of_range_boxes": 0,
+      "original_class_counts": {
+        "0": 7021,
+        "1": 2619
+      },
+      "mapped_class_counts": {
+        "0": 7021
+      },
+      "ignored_class_counts": {
+        "1": 2619
+      },
+      "unknown_class_counts": {},
+      "missing_label_files": []
+    },
+    "smoke_new": {
+      "enabled": true,
+      "zip_path": "smoke.yolov8 (1).zip",
+      "output_root": "datasets\\interim\\smoke_yolo",
+      "split_ratio": [
+        0.7,
+        0.15,
+        0.15
+      ],
+      "images_written": {
+        "train": 3427,
+        "val": 736,
+        "test": 735
+      },
+      "labels_written": {
+        "train": 3427,
+        "val": 736,
+        "test": 735
+      },
+      "empty_labels_after_remap": 63,
+      "malformed_lines": 77,
+      "out_of_range_boxes": 0,
+      "original_class_counts": {
+        "0": 5770
+      },
+      "mapped_class_counts": {
+        "2": 5770
+      },
+      "ignored_class_counts": {},
+      "unknown_class_counts": {},
+      "missing_label_files": []
+    },
+    "smoke_legacy": {
+      "enabled": true,
+      "zip_path": "smoke.yolov8.zip",
+      "output_root": "datasets\\interim\\smoke_legacy_yolo",
+      "split_ratio": [
+        0.7,
+        0.15,
+        0.15
+      ],
+      "images_written": {
+        "train": 248,
+        "val": 54,
+        "test": 54
+      },
+      "labels_written": {
+        "train": 248,
+        "val": 54,
+        "test": 54
+      },
+      "empty_labels_after_remap": 82,
+      "malformed_lines": 14,
+      "out_of_range_boxes": 0,
+      "original_class_counts": {
+        "0": 455,
+        "1": 240
+      },
+      "mapped_class_counts": {
+        "2": 455
+      },
+      "ignored_class_counts": {
+        "1": 240
+      },
+      "unknown_class_counts": {},
+      "missing_label_files": []
+    }
+  }
+}

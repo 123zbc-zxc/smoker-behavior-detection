@@ -1,0 +1,168 @@
+{
+  "dataset_root": "datasets\\interim\\roboflow_cigarette_smoke_detection_v4_yolo3cls",
+  "splits": {
+    "train": {
+      "images": 284,
+      "labels": 284,
+      "matched_pairs": 284,
+      "class_counts": {
+        "0": 268
+      },
+      "image_sizes": {
+        "250x250": 271,
+        "275x183": 2,
+        "1024x678": 1,
+        "643x360": 1,
+        "512x512": 1,
+        "800x533": 1,
+        "384x672": 1,
+        "300x300": 1,
+        "612x408": 1,
+        "259x194": 1,
+        "1280x896": 1,
+        "755x254": 1,
+        "480x268": 1
+      }
+    },
+    "val": {
+      "images": 83,
+      "labels": 83,
+      "matched_pairs": 83,
+      "class_counts": {
+        "0": 79
+      },
+      "image_sizes": {
+        "250x250": 79,
+        "279x181": 1,
+        "275x183": 1,
+        "728x408": 1,
+        "1440x1075": 1
+      }
+    },
+    "test": {
+      "images": 46,
+      "labels": 46,
+      "matched_pairs": 46,
+      "class_counts": {
+        "0": 41
+      },
+      "image_sizes": {
+        "250x250": 44,
+        "275x183": 1,
+        "268x188": 1
+      }
+    }
+  },
+  "global_class_counts": {
+    "0": 388
+  },
+  "global_issues": {
+    "missing_label_files": [],
+    "missing_image_files": [],
+    "empty_label_files": [
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00001.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00002.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00003.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00004.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00005.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00006.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00007.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00008.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00009.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00010.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00011.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00012.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00013.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00024.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00054.txt"
+      },
+      {
+        "split": "train",
+        "file": "rfcsd4_train_00161.txt"
+      },
+      {
+        "split": "val",
+        "file": "rfcsd4_val_00001.txt"
+      },
+      {
+        "split": "val",
+        "file": "rfcsd4_val_00002.txt"
+      },
+      {
+        "split": "val",
+        "file": "rfcsd4_val_00003.txt"
+      },
+      {
+        "split": "val",
+        "file": "rfcsd4_val_00004.txt"
+      },
+      {
+        "split": "test",
+        "file": "rfcsd4_test_00001.txt"
+      },
+      {
+        "split": "test",
+        "file": "rfcsd4_test_00002.txt"
+      },
+      {
+        "split": "test",
+        "file": "rfcsd4_test_00005.txt"
+      },
+      {
+        "split": "test",
+        "file": "rfcsd4_test_00006.txt"
+      },
+      {
+        "split": "test",
+        "file": "rfcsd4_test_00017.txt"
+      }
+    ],
+    "invalid_label_lines": [],
+    "unknown_classes": [],
+    "out_of_range_boxes": []
+  }
+}

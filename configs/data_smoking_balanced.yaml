@@ -1,0 +1,10 @@
+# Mildly balanced dataset for faster CPU experiments.
+# Keeps all cigarette/smoke images and downsamples class1-only images.
+path: datasets/final/smoke_bal
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: cigarette
+  1: smoking_person
+  2: smoke

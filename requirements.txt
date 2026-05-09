@@ -1,0 +1,17 @@
+ultralytics
+opencv-python
+pyyaml
+pillow
+pyqt5
+onnx
+onnxruntime
+matplotlib
+numpy
+fastapi
+uvicorn
+python-multipart
+jinja2
+sqlalchemy
+psycopg[binary]
+httpx
+imageio-ffmpeg

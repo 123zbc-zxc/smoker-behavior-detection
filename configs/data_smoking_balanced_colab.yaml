@@ -1,0 +1,10 @@
+# Google Colab runtime dataset config.
+# This assumes the project archive is extracted to /content/smoker_detection.
+path: /content/smoker_detection/datasets/final/smoke_bal
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: cigarette
+  1: smoking_person
+  2: smoke

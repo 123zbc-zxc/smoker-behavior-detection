@@ -1,0 +1,13 @@
+{
+  "source_root": "datasets\\raw\\aistudio\\pp_smoke",
+  "output_root": "datasets\\interim\\aistudio_yolo",
+  "image_count": 783,
+  "xml_count": 783,
+  "converted_files": 783,
+  "skipped_missing_image": [],
+  "skipped_unknown_class": [],
+  "invalid_boxes": 0,
+  "class_counts": {
+    "smoke": 816
+  }
+}

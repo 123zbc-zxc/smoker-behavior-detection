@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page_title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/site.css') }}?v=20260503-final1">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <p class="eyebrow">Smoker Admin</p>
+        <h1>吸烟行为检测后台</h1>
+        <p class="brand-copy">固定最佳模型、视频时序验证、检测记录和参数管理的一体化演示系统。</p>
+      </div>
+      <nav class="nav-list">
+        <button class="nav-item is-active" data-view-target="dashboardView">总览看板</button>
+        <button class="nav-item" data-view-target="detectView">图片检测</button>
+        <button class="nav-item" data-view-target="videoView">视频任务</button>
+        <button class="nav-item" data-view-target="recordsView">记录管理</button>
+        <button class="nav-item" data-view-target="modelsView">模型与参数</button>
+      </nav>
+      <div class="sidebar-foot"><p id="healthBadge" class="health-chip">系统状态检查中...</p></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="topbar-kicker">课程项目管理台</p>
+          <h2>基于深度学习的吸烟行为检测系统</h2>
+        </div>
+        <div class="topbar-meta">
+          <div><span class="meta-label">当前模型</span><strong id="activeModelName">加载中...</strong></div>
+          <div><span class="meta-label">数据库</span><strong id="databaseMode">加载中...</strong></div>
+        </div>
+      </header>
+
+      <section id="dashboardView" class="view-panel is-visible">
+        <div class="metric-grid" id="metricCards"></div>
+        <div class="panel-grid panel-grid-wide">
+          <section class="panel panel-accent">
+            <div class="panel-head"><h3>项目总览</h3><span class="chip">Dashboard</span></div>
+            <p id="datasetSummary" class="lead-line">加载数据集信息...</p>
+            <p id="modelSummary" class="lead-line">加载模型信息...</p>
+            <div class="two-col">
+              <div><h4>工程链路</h4><ol id="pipelineList" class="pipeline-list"></ol></div>
+              <div><h4>稳定性策略</h4><ul id="stabilityList" class="plain-list"></ul></div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>推荐运行参数</h3><span class="chip chip-outline">Threshold + Temporal</span></div>
+            <div id="temporalSummary" class="detail-pre">加载阈值与时序搜索结果...</div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head"><h3>实验对比</h3><span class="chip chip-outline">Baseline / ECA / Hard</span></div>
+          <div class="table-wrap">
+            <table id="comparisonTable">
+              <thead><tr><th>模型</th><th>Precision</th><th>Recall</th><th>mAP@0.5</th><th>cig Recall</th><th>cig mAP@0.5</th><th>weights</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="panel-grid">
+          <section class="panel">
+            <div class="panel-head"><h3>最近图片记录</h3><button class="ghost-btn" data-switch-view="recordsView">查看全部</button></div>
+            <div class="table-wrap"><table id="recentRecordsTable"><thead><tr><th>ID</th><th>文件</th><th>模型</th><th>目标数</th><th>时间</th></tr></thead><tbody></tbody></table></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>最近视频任务</h3><button class="ghost-btn" data-switch-view="videoView">查看全部</button></div>
+            <div class="table-wrap"><table id="recentTasksTable"><thead><tr><th>任务</th><th>文件</th><th>状态</th><th>进度</th></tr></thead><tbody></tbody></table></div>
+          </section>
+        </div>
+
+        <section class="panel">
+          <div class="panel-head"><h3>cigarette 识别分析</h3><span class="chip chip-outline">Recall Focus</span></div>
+          <div class="detail-grid"><div id="cigaretteAnalysisSummary" class="detail-pre">等待分析报告...</div><div id="cigaretteAnalysisExamples" class="detail-pre">等待分析报告...</div></div>
+        </section>
+      </section>
+
+      <section id="detectView" class="view-panel">
+        <div class="panel-grid panel-grid-wide">
+          <section class="panel panel-accent">
+            <div class="panel-head"><h3>图片检测</h3><span class="chip">Persisted</span></div>
+            <form id="detectForm" class="form-stack">
+              <label class="upload-box"><input id="imageInput" type="file" name="file" accept="image/*" required><span>选择图片，执行检测并写入数据库记录</span></label>
+              <div class="inline-fields">
+                <label><span>置信度</span><input id="detectConf" type="number" min="0.01" max="0.99" step="0.01" value="0.12"></label>
+                <label><span>IoU</span><input id="detectIou" type="number" min="0.05" max="0.95" step="0.05" value="0.45"></label>
+                <label><span>模型</span><select id="detectModelSelect"></select></label>
+              </div>
+              <button type="submit" class="primary-btn">运行图片检测</button>
+            </form>
+            <p id="detectStatus" class="status-line">上传本地图片后开始检测。</p>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>检测结果</h3><span class="chip chip-outline">实时回显</span></div>
+            <div class="result-grid"><div class="image-card"><img id="resultImage" alt="Detection result preview"></div><div class="result-card"><h4>目标列表</h4><ul id="detectionList" class="plain-list"></ul></div></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="videoView" class="view-panel">
+        <div class="panel-grid panel-grid-wide">
+          <section class="panel panel-accent">
+            <div class="panel-head"><h3>视频任务</h3><span class="chip">Async Queue</span></div>
+            <form id="videoForm" class="form-stack">
+              <label class="upload-box"><input id="videoInput" type="file" name="file" accept="video/*" required><span>上传视频，后台异步处理并轮询进度</span></label>
+              <div class="inline-fields">
+                <label><span>置信度</span><input id="videoConf" type="number" min="0.01" max="0.99" step="0.01" value="0.12"></label>
+                <label><span>IoU</span><input id="videoIou" type="number" min="0.05" max="0.95" step="0.05" value="0.45"></label>
+                <label><span>模型</span><select id="videoModelSelect"></select></label>
+              </div>
+              <button type="submit" class="primary-btn">创建视频任务</button>
+            </form>
+            <p id="videoStatus" class="status-line">支持本地短视频异步检测、时序平滑和中文报告查看。</p>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>任务队列</h3><button class="ghost-btn" id="refreshTasksBtn">刷新任务</button></div>
+            <div class="table-wrap"><table id="videoTaskTable"><thead><tr><th>任务ID</th><th>文件</th><th>状态</th><th>进度</th><th>输出</th></tr></thead><tbody></tbody></table></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="recordsView" class="view-panel">
+        <div class="panel-grid panel-grid-wide">
+          <section class="panel panel-accent">
+            <div class="panel-head"><h3>记录筛选</h3><span class="chip">History</span></div>
+            <form id="recordFilterForm" class="inline-fields">
+              <label><span>类别</span><select id="recordClassFilter"><option value="">全部</option><option value="cigarette">cigarette</option><option value="smoking_person">smoking_person</option><option value="smoke">smoke</option></select></label>
+              <label><span>状态</span><select id="recordStatusFilter"><option value="">全部</option><option value="completed">completed</option></select></label>
+              <label><span>模型</span><select id="recordModelFilter"></select></label>
+              <button type="submit" class="primary-btn">刷新记录</button>
+            </form>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h3>检测记录</h3><span class="chip chip-outline">Database</span></div>
+            <div class="table-wrap"><table id="recordsTable"><thead><tr><th>ID</th><th>文件</th><th>模型</th><th>检测数</th><th>时间</th><th>操作</th></tr></thead><tbody></tbody></table></div>
+          </section>
+        </div>
+        <section class="panel">
+          <div class="panel-head"><h3>记录详情</h3><span class="chip chip-outline">Detail</span></div>
+          <div class="detail-grid"><div class="detail-preview"><img id="recordDetailImage" alt="Record detail image"></div><div><pre id="recordDetailText" class="detail-pre">点击记录表中的“查看”加载详情。</pre></div></div>
+        </section>
+      </section>
+
+      <section id="modelsView" class="view-panel">
+        <div class="panel-grid panel-grid-wide">
+          <section class="panel panel-accent"><div class="panel-head"><h3>模型注册表</h3><span class="chip">Registry</span></div><div id="modelCards" class="card-grid"></div></section>
+          <section class="panel">
+            <div class="panel-head"><h3>全局参数</h3><span class="chip chip-outline">Settings</span></div>
+            <form id="settingsForm" class="form-stack">
+              <div class="inline-fields">
+                <label><span>默认模型</span><select id="settingsModelSelect"></select></label>
+                <label><span>默认置信度</span><input id="settingsConf" type="number" min="0.01" max="0.99" step="0.01"></label>
+                <label><span>默认 IoU</span><input id="settingsIou" type="number" min="0.05" max="0.95" step="0.05"></label>
+                <label><span>默认图片尺寸</span><input id="settingsImgsz" type="number" min="320" max="960" step="32"></label>
+                <label><span>上传大小上限(MB)</span><input id="settingsUploadMb" type="number" min="1" max="512" step="1"></label>
+              </div>
+              <button type="submit" class="primary-btn">保存全局参数</button>
+            </form>
+            <p id="settingsStatus" class="status-line">在这里统一管理默认模型和阈值。</p>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>window.__DEMO_CONFIG__ = {{ demo_config | tojson }};</script>
+  <script src="{{ url_for('static', path='js/app.js') }}?v=20260503-final1"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+# Python / environment
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS
+.idea/
+.vscode/
+.claude/
+.DS_Store
+Thumbs.db
+
+# Large datasets and generated artifacts
+datasets/raw/
+datasets/interim/
+datasets/final/
+datasets/processed/
+output/
+runs/
+tmp/
+backup/
+smoker_cloud_pack/
+smokingVSnotsmoking/
+.tmp_weight_inspect/
+
+# Keep lightweight dataset reports if intentionally added
+!datasets/reports/
+!datasets/reports/**/*.md
+!datasets/reports/**/*.json
+!datasets/reports/**/*.csv
+datasets/reports/**/previews/
+datasets/reports/**/*preview*/
+datasets/reports/**/suspicious_labels.csv
+datasets/reports/**/suspicious_labels.json
+
+# Model weights and exports
+*.pt
+*.pth
+*.onnx
+*.engine
+*.torchscript
+*.tflite
+
+# Archives and packaged data
+*.zip
+*.rar
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+
+# Runtime databases and caches
+*.db
+*.sqlite
+*.sqlite3
+*.cache
+
+# Large media / binary assets
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.gif
+*.webp
+
+# Office/PDF drafts are not source code; keep Markdown docs instead
+*.docx
+*.doc
+*.pdf
+*.pptx
+*.ppt
+*.xlsx
+*.xls
+
+# Logs
+*.log
+*.txt
+!requirements.txt

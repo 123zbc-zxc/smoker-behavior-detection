@@ -1,0 +1,98 @@
+{
+  "dataset": {
+    "name": "smoke_bal",
+    "train_images": 14416,
+    "val_images": 1895,
+    "test_images": 1925,
+    "classes": [
+      "cigarette",
+      "smoking_person",
+      "smoke"
+    ]
+  },
+  "active_model": {
+    "key": "hard_finetune",
+    "name": "YOLOv8n 640px Hard Fine-tune (20260502)",
+    "weights": "runs/imported/yolov8n_colab_640_hard_candidate_20260502/train/weights/best.pt",
+    "reason": "香烟召回率更高，并且在 109 个 HMDB51 smoke 视频上具有更好的时序命中和稳定轨迹表现。"
+  },
+  "recommended_runtime": {
+    "imgsz": 640,
+    "default_conf": 0.12,
+    "default_iou": 0.45,
+    "class_conf": {
+      "cigarette": 0.12,
+      "smoking_person": 0.22,
+      "smoke": 0.28
+    },
+    "temporal": {
+      "match_iou": 0.25,
+      "stable_hits": 3,
+      "bridge_frames": 2,
+      "track_stale_frames": 5
+    }
+  },
+  "experiments": {
+    "hard_finetune": {
+      "precision": "0.541",
+      "recall": "0.690",
+      "map50": "0.560",
+      "map50_95": "0.356",
+      "cigarette_precision": "0.446",
+      "cigarette_recall": "0.747",
+      "cigarette_map50": "0.497",
+      "cigarette_map50_95": "0.299",
+      "weights_name": "hard best.pt",
+      "note": "当前 Web 默认模型"
+    },
+    "old_champion": {
+      "precision": "0.539",
+      "recall": "0.686",
+      "map50": "0.561",
+      "map50_95": "0.360",
+      "cigarette_precision": "0.445",
+      "cigarette_recall": "0.721",
+      "cigarette_map50": "0.492",
+      "cigarette_map50_95": "0.299",
+      "weights_name": "20260429 best.pt",
+      "note": "旧冠军，对照保留"
+    },
+    "baseline": {
+      "precision": "0.526",
+      "recall": "0.625",
+      "map50": "0.520",
+      "map50_95": "0.323",
+      "weights_name": "balanced baseline"
+    },
+    "eca": {
+      "precision": "0.513",
+      "recall": "0.572",
+      "map50": "0.494",
+      "map50_95": "0.299",
+      "weights_name": "ECA comparison"
+    }
+  },
+  "temporal_search": {
+    "report_path": "runs/video_temporal/threshold_search_20260503/video_threshold_temporal_search.json",
+    "recommended_param_set": "recall_plus",
+    "video_count": 20,
+    "temporal_event_hit_rate": "0.85",
+    "smoothed_hit_frame_ratio": "0.2997",
+    "stable_track_count": 69,
+    "boundary": "该搜索基于 HMDB51 smoke 正样本视频，只能说明时序命中和连续性，不单独证明误检率下降。"
+  },
+  "pipeline": [
+    "固定当前最佳 hard_finetune 权重作为 Web 默认模型，旧冠军仅作对照。",
+    "保留 smoke_bal 数据集的 test split 指标，避免只用演示视频评价模型。",
+    "在 HMDB51 smoke 视频上评估连续命中帧、稳定轨迹和漏检片段。",
+    "通过类别阈值和时序平滑参数提高视频检测连续性，而不是继续盲目加训练轮数。",
+    "使用 FastAPI Web Demo 展示图片检测、视频任务、中文报告、模型切换和参数管理。"
+  ],
+  "stability": [
+    "默认权重切换到 hard_finetune，默认输入尺寸保持 640。",
+    "类别阈值使用 cigarette 0.12、smoking_person 0.22、smoke 0.28，提高小目标香烟召回。",
+    "视频报告同时展示 raw detections 和 smoothed detections，避免只看单帧结果。",
+    "时序策略使用 stable_hits=3、bridge_frames=2，抑制闪烁并保留短时遮挡目标。",
+    "系统 Smoke Test 覆盖健康检查、图片检测、视频任务和报告页面。"
+  ]
+}

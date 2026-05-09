@@ -1,0 +1,73 @@
+{
+  "dataset_root": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\final\\smoke_bal",
+  "output_dir": "D:\\Smoker Behavior Detection Based on Deep Learning\\datasets\\reports\\smoke_bal_audit_20260504",
+  "total_images": 18236,
+  "total_label_files": 18236,
+  "total_boxes": 24624,
+  "total_issues": 4913,
+  "severity_counts": {
+    "review": 337,
+    "warning": 4574,
+    "error": 2
+  },
+  "issue_counts": {
+    "small_smoke_region": 65,
+    "huge_box": 163,
+    "huge_cigarette_box": 919,
+    "small_cigarette_review": 225,
+    "extreme_aspect_ratio": 47,
+    "tiny_box": 51,
+    "box_crosses_image_edge": 11,
+    "small_smoking_person_box": 3421,
+    "overlapping_duplicate_box": 8,
+    "duplicate_label_line": 1,
+    "unsupported_image_format": 2
+  },
+  "class_counts": {
+    "2": 7041,
+    "0": 7021,
+    "1": 10562
+  },
+  "splits": {
+    "train": {
+      "images": 14416,
+      "label_files": 14416,
+      "boxes": 19049,
+      "class_counts": {
+        "2": 4931,
+        "0": 4835,
+        "1": 9283
+      }
+    },
+    "val": {
+      "images": 1895,
+      "label_files": 1895,
+      "boxes": 2671,
+      "class_counts": {
+        "2": 1067,
+        "0": 1109,
+        "1": 495
+      }
+    },
+    "test": {
+      "images": 1925,
+      "label_files": 1925,
+      "boxes": 2904,
+      "class_counts": {
+        "2": 1043,
+        "0": 1077,
+        "1": 784
+      }
+    }
+  },
+  "thresholds": {
+    "tiny_area": 0.00025,
+    "small_cigarette_area": 0.0008,
+    "small_person_area": 0.008,
+    "small_smoke_area": 0.003,
+    "huge_cigarette_area": 0.08,
+    "huge_box_area": 0.85,
+    "aspect_threshold": 14.0,
+    "duplicate_iou": 0.95
+  }
+}

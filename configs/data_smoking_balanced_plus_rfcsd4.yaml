@@ -1,0 +1,17 @@
+# Balanced project dataset plus Roboflow Cigarette Smoke Detection v4.
+# The added dataset contributes only class 0 (cigarette) boxes and a small
+# number of negative images; it does not add smoking_person or smoke boxes.
+path: .
+train:
+  - datasets/final/smoke_bal/images/train
+  - datasets/interim/roboflow_cigarette_smoke_detection_v4_yolo3cls/images/train
+val:
+  - datasets/final/smoke_bal/images/val
+  - datasets/interim/roboflow_cigarette_smoke_detection_v4_yolo3cls/images/val
+test:
+  - datasets/final/smoke_bal/images/test
+  - datasets/interim/roboflow_cigarette_smoke_detection_v4_yolo3cls/images/test
+names:
+  0: cigarette
+  1: smoking_person
+  2: smoke
