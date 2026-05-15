@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text
@@ -8,7 +8,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 def utcnow() -> datetime:
-    return datetime.utcnow()
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class Base(DeclarativeBase):
@@ -110,3 +110,43 @@ class VideoTask(Base):
     finished_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     model: Mapped[ModelRegistry | None] = relationship(back_populates="video_tasks")
+
+
+class AlertRule(Base):
+    __tablename__ = "alert_rules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    score_threshold: Mapped[float] = mapped_column(Float, default=70.0, nullable=False)
+    min_duration_frames: Mapped[int] = mapped_column(Integer, default=3, nullable=False)
+    cooldown_seconds: Mapped[int] = mapped_column(Integer, default=60, nullable=False)
+    monitor_zones: Mapped[list[Any] | None] = mapped_column(JSON, nullable=True)
+    ignore_zones: Mapped[list[Any] | None] = mapped_column(JSON, nullable=True)
+    notification_channels: Mapped[list[str]] = mapped_column(JSON, default=lambda: ["log", "database"], nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+
+class AlertEvent(Base):
+    __tablename__ = "alert_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    video_task_id: Mapped[int | None] = mapped_column(ForeignKey("video_tasks.id"), nullable=True)
+    alert_type: Mapped[str] = mapped_column(String(32), default="smoking", nullable=False)
+    severity: Mapped[str] = mapped_column(String(32), nullable=False)
+    score: Mapped[float] = mapped_column(Float, nullable=False)
+    start_frame: Mapped[int] = mapped_column(Integer, nullable=False)
+    end_frame: Mapped[int] = mapped_column(Integer, nullable=False)
+    duration_seconds: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    bbox_x1: Mapped[float] = mapped_column(Float, nullable=False)
+    bbox_y1: Mapped[float] = mapped_column(Float, nullable=False)
+    bbox_x2: Mapped[float] = mapped_column(Float, nullable=False)
+    bbox_y2: Mapped[float] = mapped_column(Float, nullable=False)
+    thumbnail_path: Mapped[str] = mapped_column(String(512), default="", nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="pending", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, nullable=False)
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    confirmed_by: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+
+    video_task: Mapped[VideoTask | None] = relationship()

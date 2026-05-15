@@ -41,8 +41,8 @@ EXPECTED_INDEX_PHRASES = (
 )
 
 EXPECTED_APP_JS_SNIPPETS = (
-    "查看中文报告",
-    "播放视频",
+    "\u67e5\u770b\u4e2d\u6587\u62a5\u544a",
+    "\u64ad\u653e\u89c6\u9891",
 )
 
 

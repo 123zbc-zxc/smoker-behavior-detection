@@ -13,6 +13,7 @@ __pycache__/
 .idea/
 .vscode/
 .claude/
+.specify/
 .DS_Store
 Thumbs.db
 
@@ -98,6 +99,9 @@ docs/*72H_ACTION*
 docs/project_overall_report_*.md
 docs/verification_and_improvement_plan_*.md
 docs/Claude_*.md
+docs/precision_improvement*.md
+specs/
+CLAUDE.md
 第5章_*.md
 论文章节*.md
 scripts/*thesis*.py

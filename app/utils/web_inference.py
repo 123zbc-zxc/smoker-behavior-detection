@@ -13,6 +13,7 @@ import cv2
 import numpy as np
 
 from scripts.yolo_utils import build_model, ensure_exists, project_root
+from app.utils.smoking_event_scorer import calculate_smoking_score
 
 
 ROOT = project_root()
@@ -25,9 +26,10 @@ TEMPORAL_STABLE_HITS = 3
 TEMPORAL_BRIDGE_FRAMES = 2
 TRACK_STALE_FRAMES = 5
 CONFIDENCE_SMOOTH_ALPHA = 0.7
+TEMPORAL_ALERT_SCORE_FLOOR = 70.0
 CLASS_CONF_THRESHOLDS = {
     0: 0.12,
-    1: 0.22,
+    1: 0.15,
     2: 0.28,
 }
 DEFAULT_INFERENCE_CONF = min(CLASS_CONF_THRESHOLDS.values())
@@ -217,7 +219,7 @@ class DetectionService:
         filename: str | None = None,
         *,
         conf: float = DEFAULT_INFERENCE_CONF,
-        iou: float = 0.45,
+        iou: float = 0.35,
         weights_path: str | Path | None = None,
         imgsz: int | None = None,
     ) -> dict[str, Any]:
@@ -236,13 +238,20 @@ class DetectionService:
             raise RuntimeError("Failed to encode plotted result image.")
 
         detections = self._extract_detections(result)
+        detections = self._apply_post_processing_rules(detections)
         encoded_bytes = encoded.tobytes()
+        event_score = calculate_smoking_score(detections, consecutive_hits=1)
         return {
             "model": self.model_info(),
             "detections": [self._box_to_dict(det) for det in detections],
             "num_detections": len(detections),
             "annotated_image_base64": base64.b64encode(encoded_bytes).decode("ascii"),
             "_annotated_image_bytes": encoded_bytes,
+            "smoking_event": {
+                "score": round(event_score.final_score, 1),
+                "classification": event_score.classification,
+                "evidence_classes": event_score.evidence_classes,
+            },
         }
 
     def process_video_file(
@@ -251,7 +260,7 @@ class DetectionService:
         output_path: str | Path,
         *,
         conf: float = DEFAULT_INFERENCE_CONF,
-        iou: float = 0.45,
+        iou: float = 0.35,
         weights_path: str | Path | None = None,
         imgsz: int | None = None,
         progress_callback: Callable[[int, int, int], None] | None = None,
@@ -292,6 +301,8 @@ class DetectionService:
         next_track_id = 1
         stable_track_ids: set[int] = set()
         flicker_suppressed_count = 0
+        smoking_events: list[dict] = []
+        _event_consecutive_hits = 0
 
         try:
             while True:
@@ -301,6 +312,7 @@ class DetectionService:
                 frame_index += 1
                 result = self._predict_frame(frame, conf=conf, iou=iou)
                 detections = self._extract_detections(result)
+                detections = self._apply_post_processing_rules(detections)
                 rendered_detections, next_track_id, bridged = self._temporal_filter_detections(
                     tracks,
                     detections,
@@ -321,6 +333,20 @@ class DetectionService:
                 for det in rendered_detections:
                     smoothed_per_class[det.class_name] += 1
 
+                if rendered_detections:
+                    _event_consecutive_hits += 1
+                else:
+                    _event_consecutive_hits = 0
+                frame_score = calculate_smoking_score(rendered_detections, _event_consecutive_hits)
+                self._append_temporal_alert_event_if_needed(
+                    smoking_events,
+                    frame_index=frame_index,
+                    fps=fps,
+                    detections=rendered_detections,
+                    frame_score=frame_score,
+                    consecutive_hits=_event_consecutive_hits,
+                )
+
                 if frame_callback:
                     frame_callback(frame_index, len(detections), len(rendered_detections))
                 if progress_callback and (frame_index == total_frames or frame_index % 5 == 0):
@@ -333,6 +359,7 @@ class DetectionService:
         return {
             "total_frames": total_frames or frame_index,
             "processed_frames": frame_index,
+            "fps": round(float(fps), 4),
             "num_detections": smoothed_num_detections,
             "raw_num_detections": raw_num_detections,
             "smoothed_num_detections": smoothed_num_detections,
@@ -342,6 +369,7 @@ class DetectionService:
             "stable_track_count": len(stable_track_ids),
             "flicker_suppressed_count": flicker_suppressed_count,
             "temporal_event_hit": bool(stable_track_ids),
+            "smoking_events": smoking_events,
             "temporal_parameters": {
                 "match_iou": TEMPORAL_MATCH_IOU,
                 "stable_hits": TEMPORAL_STABLE_HITS,
@@ -436,6 +464,167 @@ class DetectionService:
                 )
             )
         return detections
+
+    def _apply_post_processing_rules(self, detections: list[DetectionBox]) -> list[DetectionBox]:
+        """Apply lightweight class-specific filters before temporal smoothing."""
+        filtered: list[DetectionBox] = []
+
+        for det in [d for d in detections if d.class_id == 0 and len(d.xyxy) == 4]:
+            x1, y1, x2, y2 = det.xyxy
+            width = x2 - x1
+            height = y2 - y1
+            if width <= 0 or height <= 0:
+                continue
+            aspect_ratio = max(width, height) / (min(width, height) + 1e-6)
+            if 1.5 <= aspect_ratio <= 8.0:
+                filtered.append(det)
+
+        for det in [d for d in detections if d.class_id == 2 and len(d.xyxy) == 4]:
+            x1, y1, x2, y2 = det.xyxy
+            area = (x2 - x1) * (y2 - y1)
+            if area >= 100:
+                filtered.append(det)
+
+        cigarette_boxes = [d.xyxy for d in detections if d.class_id == 0 and len(d.xyxy) == 4]
+        smoke_boxes = [d.xyxy for d in detections if d.class_id == 2 and len(d.xyxy) == 4]
+        for det in [d for d in detections if d.class_id == 1]:
+            if len(det.xyxy) != 4:
+                continue
+            has_nearby = False
+            x1, y1, x2, y2 = det.xyxy
+            w, h = x2 - x1, y2 - y1
+            expanded = [x1 - w * 0.25, y1 - h * 0.25, x2 + w * 0.25, y2 + h * 0.25]
+            for other_box in cigarette_boxes + smoke_boxes:
+                if self._boxes_overlap(expanded, other_box):
+                    has_nearby = True
+                    break
+            if has_nearby:
+                filtered.append(det)
+            else:
+                penalized = DetectionBox(
+                    class_id=det.class_id,
+                    class_name=det.class_name,
+                    confidence=det.confidence * 0.6,
+                    xyxy=det.xyxy,
+                )
+                if penalized.confidence >= CLASS_CONF_THRESHOLDS.get(penalized.class_id, 0.25):
+                    filtered.append(penalized)
+
+        return filtered
+
+    def _append_smoking_event(
+        self,
+        events: list[dict[str, Any]],
+        *,
+        frame_index: int,
+        fps: float,
+        detections: list[DetectionBox],
+        score: float,
+        classification: str,
+        evidence_classes: list[int],
+    ) -> None:
+        bbox = self._representative_event_bbox(detections)
+        if not bbox:
+            return
+
+        safe_fps = max(float(fps), 1.0)
+        if events and events[-1]["end_frame"] == frame_index - 1:
+            event = events[-1]
+            event["frame"] = frame_index
+            event["end_frame"] = frame_index
+            event["duration_frames"] = event["end_frame"] - event["start_frame"] + 1
+            event["duration_seconds"] = round(event["duration_frames"] / safe_fps, 3)
+            event["end_seconds"] = round(frame_index / safe_fps, 3)
+            event["score"] = max(event["score"], score)
+            event["classification"] = self._stronger_classification(event["classification"], classification)
+            event["evidence_classes"] = sorted(set(event["evidence_classes"]) | set(evidence_classes))
+            event["bbox"] = self._union_bbox([event["bbox"], bbox])
+            return
+
+        start_seconds = round(frame_index / safe_fps, 3)
+        events.append(
+            {
+                "frame": frame_index,
+                "start_frame": frame_index,
+                "end_frame": frame_index,
+                "duration_frames": 1,
+                "duration_seconds": round(1 / safe_fps, 3),
+                "start_seconds": start_seconds,
+                "end_seconds": start_seconds,
+                "score": score,
+                "classification": classification,
+                "evidence_classes": evidence_classes,
+                "bbox": bbox,
+            }
+        )
+
+    def _append_temporal_alert_event_if_needed(
+        self,
+        events: list[dict[str, Any]],
+        *,
+        frame_index: int,
+        fps: float,
+        detections: list[DetectionBox],
+        frame_score: Any,
+        consecutive_hits: int,
+    ) -> bool:
+        direct_event = frame_score.classification in ("confirmed", "suspected")
+        stable_cigarette_event = consecutive_hits >= TEMPORAL_STABLE_HITS and 0 in set(
+            frame_score.evidence_classes
+        )
+        if not direct_event and not stable_cigarette_event:
+            return False
+
+        score = round(frame_score.final_score, 1)
+        classification = frame_score.classification
+        if stable_cigarette_event and score < TEMPORAL_ALERT_SCORE_FLOOR:
+            # A multi-frame stable cigarette track is stronger evidence than
+            # a single-frame confidence score, so promote it to an alertable
+            # suspected event for the dashboard rule engine.
+            score = TEMPORAL_ALERT_SCORE_FLOOR
+            classification = "suspected"
+
+        before_count = len(events)
+        before_end_frame = events[-1]["end_frame"] if events else None
+        self._append_smoking_event(
+            events,
+            frame_index=frame_index,
+            fps=fps,
+            detections=detections,
+            score=score,
+            classification=classification,
+            evidence_classes=frame_score.evidence_classes,
+        )
+        return len(events) > before_count or (bool(events) and events[-1]["end_frame"] != before_end_frame)
+
+    @staticmethod
+    def _representative_event_bbox(detections: list[DetectionBox]) -> list[float]:
+        person_boxes = [d.xyxy for d in detections if d.class_id == 1 and len(d.xyxy) == 4]
+        if person_boxes:
+            return DetectionService._union_bbox(person_boxes)
+        boxes = [d.xyxy for d in detections if d.class_id in {0, 2} and len(d.xyxy) == 4]
+        return DetectionService._union_bbox(boxes)
+
+    @staticmethod
+    def _union_bbox(boxes: list[list[float]]) -> list[float]:
+        valid = [box for box in boxes if len(box) == 4]
+        if not valid:
+            return []
+        return [
+            min(box[0] for box in valid),
+            min(box[1] for box in valid),
+            max(box[2] for box in valid),
+            max(box[3] for box in valid),
+        ]
+
+    @staticmethod
+    def _stronger_classification(left: str, right: str) -> str:
+        rank = {"ignore": 0, "low_confidence": 1, "suspected": 2, "confirmed": 3}
+        return left if rank.get(left, 0) >= rank.get(right, 0) else right
+
+    @staticmethod
+    def _boxes_overlap(a: list[float], b: list[float]) -> bool:
+        return not (a[2] < b[0] or b[2] < a[0] or a[3] < b[1] or b[3] < a[1])
 
     def _box_to_dict(self, det: DetectionBox) -> dict[str, Any]:
         return {
