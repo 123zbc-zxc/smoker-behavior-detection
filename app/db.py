@@ -9,11 +9,13 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import RuntimeConfig, build_runtime_config, ensure_runtime_dirs
-from app.db_models import AppSetting, Base, ModelRegistry
+from app.db_models import AlertRule, AppSetting, Base, ModelRegistry
 
 
 _ENGINE: Engine | None = None
 _SESSION_FACTORY: sessionmaker[Session] | None = None
+DEFAULT_ALERT_RULE_NAME = "\u9ed8\u8ba4\u5438\u70df\u544a\u8b66\u89c4\u5219"
+LEGACY_ALERT_RULE_MARKERS = ("\ufffd", "?", "\u012c", "\u6faf")
 
 
 def runtime_config() -> RuntimeConfig:
@@ -123,3 +125,31 @@ def ensure_default_settings(
     settings.max_upload_mb = settings.max_upload_mb or max_upload_mb
     session.flush()
     return settings
+
+
+def bootstrap_alert_rules(session: Session) -> AlertRule:
+    existing = session.scalar(select(AlertRule).where(AlertRule.name == DEFAULT_ALERT_RULE_NAME))
+    if existing is None:
+        for row in session.scalars(select(AlertRule).order_by(AlertRule.id)).all():
+            if any(marker in row.name for marker in LEGACY_ALERT_RULE_MARKERS):
+                existing = row
+                break
+    if existing is not None:
+        existing.name = DEFAULT_ALERT_RULE_NAME
+        existing.enabled = True
+        session.flush()
+        return existing
+
+    rule = AlertRule(
+        name=DEFAULT_ALERT_RULE_NAME,
+        enabled=True,
+        score_threshold=70.0,
+        min_duration_frames=3,
+        cooldown_seconds=60,
+        monitor_zones=None,
+        ignore_zones=None,
+        notification_channels=["log", "database"],
+    )
+    session.add(rule)
+    session.flush()
+    return rule

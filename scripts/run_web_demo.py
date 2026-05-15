@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -20,6 +21,11 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if args.host not in {"127.0.0.1", "localhost", "::1"} and not os.getenv("SMOKER_ADMIN_PASSWORD"):
+        raise RuntimeError(
+            "Refusing to bind the demo to a non-local host without SMOKER_ADMIN_PASSWORD. "
+            "Use --host 127.0.0.1 for local defense demos, or set SMOKER_ADMIN_PASSWORD first."
+        )
     try:
         import uvicorn
     except ImportError as exc:

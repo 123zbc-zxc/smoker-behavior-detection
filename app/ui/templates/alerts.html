@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>告警管理 - 吸烟行为检测系统</title>
+    <link rel="stylesheet" href="/static/css/site.css">
+    <style>
+        .alert-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .badge-pending { background: #fff3cd; color: #856404; }
+        .badge-confirmed { background: #d4edda; color: #155724; }
+        .badge-dismissed { background: #f8d7da; color: #721c24; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #f8f9fa; border-radius: 8px; padding: 16px; text-align: center; }
+        .stat-card .value { font-size: 28px; font-weight: 700; color: #333; }
+        .stat-card .label { font-size: 13px; color: #666; margin-top: 4px; }
+        .alert-table { width: 100%; border-collapse: collapse; background: #fff; }
+        .alert-table th, .alert-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; }
+        .alert-table th { background: #f8f9fa; font-weight: 600; }
+        .alert-thumb { width: 96px; height: 64px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; background: #f3f3f3; }
+        .thumb-empty { color: #999; font-size: 12px; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-refresh { background: #007bff; color: #fff; padding: 8px 16px; font-size: 14px; }
+        .btn-confirm { background: #28a745; color: #fff; }
+        .btn-dismiss { background: #dc3545; color: #fff; margin-left: 6px; }
+        .btn-confirm:hover { background: #218838; }
+        .btn-dismiss:hover { background: #c82333; }
+        .rules-section { margin-top: 32px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+        .rule-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .rule-item:last-child { border-bottom: 0; }
+        .nav-link { display: inline-block; margin-right: 16px; color: #007bff; text-decoration: none; }
+        .nav-link:hover { text-decoration: underline; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .muted { color: #777; }
+    </style>
+</head>
+<body>
+    <div style="max-width: 1000px; margin: 0 auto; padding: 24px;">
+        <nav style="margin-bottom: 20px;">
+            <a href="/" class="nav-link">← 返回主页</a>
+            <a href="/alerts" class="nav-link" style="font-weight:600;">告警管理</a>
+        </nav>
+
+        <div class="page-header">
+            <h1>告警管理</h1>
+            <button onclick="refreshAlerts()" class="btn-sm btn-refresh">刷新</button>
+        </div>
+
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card"><div class="value" id="stat-total">-</div><div class="label">总告警数</div></div>
+            <div class="stat-card"><div class="value" id="stat-pending">-</div><div class="label">待处理</div></div>
+            <div class="stat-card"><div class="value" id="stat-confirmed">-</div><div class="label">已确认</div></div>
+            <div class="stat-card"><div class="value" id="stat-dismissed">-</div><div class="label">已忽略</div></div>
+            <div class="stat-card"><div class="value" id="stat-fpr">-</div><div class="label">误报率</div></div>
+        </div>
+
+        <h2>告警事件</h2>
+        <div style="margin-bottom: 12px;">
+            <select id="filter-status" onchange="loadEvents()">
+                <option value="">全部状态</option>
+                <option value="pending">待处理</option>
+                <option value="confirmed">已确认</option>
+                <option value="dismissed">已忽略</option>
+            </select>
+        </div>
+        <table class="alert-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>类型</th>
+                    <th>抓拍</th>
+                    <th>级别</th>
+                    <th>得分</th>
+                    <th>帧范围</th>
+                    <th>持续时间</th>
+                    <th>状态</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="events-body">
+                <tr><td colspan="10" style="text-align:center;color:#999;">加载中...</td></tr>
+            </tbody>
+        </table>
+
+        <div class="rules-section">
+            <h2>告警规则</h2>
+            <div id="rules-list"><p class="muted">加载中...</p></div>
+        </div>
+    </div>
+    <script src="/static/js/alerts.js"></script>
+</body>
+</html>

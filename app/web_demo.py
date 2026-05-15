@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import json
+import os
+import base64
+import binascii
+import secrets
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+import cv2
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,26 +20,70 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
 from app.config import ROOT, build_runtime_config, ensure_runtime_dirs, load_demo_config
-from app.db import ensure_default_settings, init_database, session_scope, settings_row
-from app.db_models import AppSetting, ImageDetection, ImageDetectionBox, ModelRegistry, VideoTask, utcnow
+from app.db import (
+    DEFAULT_ALERT_RULE_NAME,
+    bootstrap_alert_rules,
+    ensure_default_settings,
+    init_database,
+    session_scope,
+    settings_row,
+)
+from app.db_models import AppSetting, ImageDetection, ImageDetectionBox, ModelRegistry, VideoTask, AlertEvent, AlertRule, utcnow
 from app.utils.web_inference import DEFAULT_INFERENCE_CONF, DetectionService
+from app.alert_manager import AlertManager
 
 
 STATIC_DIR = ROOT / "app" / "ui" / "static"
 TEMPLATES_DIR = ROOT / "app" / "ui" / "templates"
 RUNTIME = build_runtime_config()
 ensure_runtime_dirs(RUNTIME)
+ALERT_THUMBNAIL_DIR = RUNTIME.results_root / "alerts"
+ALERT_THUMBNAIL_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title="Smoker Behavior Detection Web Admin",
     description="FastAPI management console for the smoker behavior detection graduation project.",
     version="2.0.0",
+    docs_url="/docs" if os.getenv("SMOKER_ENABLE_API_DOCS") == "1" else None,
+    redoc_url="/redoc" if os.getenv("SMOKER_ENABLE_API_DOCS") == "1" else None,
+    openapi_url="/openapi.json" if os.getenv("SMOKER_ENABLE_API_DOCS") == "1" else None,
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.mount("/artifacts", StaticFiles(directory=RUNTIME.output_root), name="artifacts")
+app.mount("/artifacts", StaticFiles(directory=RUNTIME.results_root), name="artifacts")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 service = DetectionService()
 APP_STATE: dict[str, Any] = {"db_ready": False, "db_error": "", "database_url": RUNTIME.database_url}
+MIN_IOU = 0.05
+MAX_IOU = 0.95
+MAX_CONF = 0.99
+
+
+def _basic_auth_is_valid(header_value: str | None) -> bool:
+    expected_password = os.getenv("SMOKER_ADMIN_PASSWORD")
+    if not expected_password:
+        return True
+    if not header_value or not header_value.startswith("Basic "):
+        return False
+    try:
+        decoded = base64.b64decode(header_value.removeprefix("Basic "), validate=True).decode("utf-8")
+    except (binascii.Error, UnicodeDecodeError):
+        return False
+    username, sep, password = decoded.partition(":")
+    if not sep:
+        return False
+    expected_user = os.getenv("SMOKER_ADMIN_USER", "admin")
+    return secrets.compare_digest(username, expected_user) and secrets.compare_digest(password, expected_password)
+
+
+@app.middleware("http")
+async def require_optional_basic_auth(request: Request, call_next):
+    if _basic_auth_is_valid(request.headers.get("authorization")):
+        return await call_next(request)
+    return JSONResponse(
+        {"detail": "Authentication required."},
+        status_code=401,
+        headers={"WWW-Authenticate": 'Basic realm="Smoker Demo"'},
+    )
 
 
 class ModelSwitchRequest(BaseModel):
@@ -76,15 +125,163 @@ def artifact_url(path_value: str) -> str:
         return ""
     path = Path(path_value)
     try:
-        relative = path.relative_to(RUNTIME.output_root)
+        relative = path.resolve().relative_to(RUNTIME.results_root.resolve())
     except ValueError:
         return ""
     return f"/artifacts/{relative.as_posix()}"
 
 
+def safe_unlink_runtime_file(path: Path | str | None, *, allowed_roots: list[Path]) -> bool:
+    if not path:
+        return False
+    target = Path(path)
+    try:
+        resolved_target = target.resolve()
+    except OSError:
+        return False
+    allowed = False
+    for root in allowed_roots:
+        try:
+            resolved_target.relative_to(root.resolve())
+            allowed = True
+            break
+        except ValueError:
+            continue
+    if not allowed or not resolved_target.is_file():
+        return False
+    resolved_target.unlink(missing_ok=True)
+    return True
+
+
+def resolve_detection_thresholds(
+    *,
+    conf: float | None,
+    iou: float | None,
+    settings: AppSetting,
+) -> tuple[float, float]:
+    conf_value = settings.default_conf if conf is None else conf
+    iou_value = settings.default_iou if iou is None else iou
+
+    if not DEFAULT_INFERENCE_CONF <= conf_value <= MAX_CONF:
+        raise HTTPException(
+            status_code=400,
+            detail=f"conf must be between {DEFAULT_INFERENCE_CONF:.2f} and {MAX_CONF:.2f}.",
+        )
+    if not MIN_IOU <= iou_value <= MAX_IOU:
+        raise HTTPException(
+            status_code=400,
+            detail=f"iou must be between {MIN_IOU:.2f} and {MAX_IOU:.2f}.",
+        )
+    return float(conf_value), float(iou_value)
+
+
+def create_request_detection_service(
+    *,
+    weights_path: str | Path | None,
+    imgsz: int,
+    max_upload_mb: int,
+) -> DetectionService:
+    return DetectionService(
+        weights_path=weights_path,
+        imgsz=imgsz,
+        max_upload_mb=max_upload_mb,
+    )
+
+
+async def read_upload_bytes_limited(
+    file: UploadFile,
+    *,
+    max_upload_mb: int,
+    label: str,
+    chunk_size: int = 1024 * 1024,
+) -> bytes:
+    limit = max_upload_mb * 1024 * 1024
+    chunks: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(chunk_size)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > limit:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Uploaded {label} exceeds {max_upload_mb} MB limit.",
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
 def write_bytes(path: Path, payload: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(payload)
+
+
+def _safe_file_stem(value: str) -> str:
+    stem = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in value)
+    return stem.strip("._") or uuid4().hex
+
+
+def _expanded_bbox(
+    bbox: list[float] | tuple[float, float, float, float],
+    *,
+    width: int,
+    height: int,
+    padding_ratio: float = 0.2,
+) -> tuple[int, int, int, int] | None:
+    if len(bbox) < 4:
+        return None
+    x1, y1, x2, y2 = (float(value) for value in bbox[:4])
+    if x2 <= x1 or y2 <= y1:
+        return None
+
+    pad_x = (x2 - x1) * padding_ratio
+    pad_y = (y2 - y1) * padding_ratio
+    left = max(0, int(round(x1 - pad_x)))
+    top = max(0, int(round(y1 - pad_y)))
+    right = min(width, int(round(x2 + pad_x)))
+    bottom = min(height, int(round(y2 + pad_y)))
+    if right <= left or bottom <= top:
+        return None
+    return left, top, right, bottom
+
+
+def create_alert_thumbnail_from_video(
+    *,
+    source_video_path: str | Path,
+    event: dict[str, Any],
+    output_dir: Path,
+    prefix: str,
+) -> Path | None:
+    """Save a cropped alert thumbnail from the event frame; fall back to the full frame."""
+    source_path = Path(source_video_path)
+    if not source_path.exists():
+        return None
+
+    start_frame = int(event.get("start_frame") or event.get("frame") or 1)
+    capture = cv2.VideoCapture(str(source_path))
+    try:
+        if not capture.isOpened():
+            return None
+        capture.set(cv2.CAP_PROP_POS_FRAMES, max(start_frame - 1, 0))
+        ok, frame = capture.read()
+        if not ok or frame is None:
+            return None
+
+        height, width = frame.shape[:2]
+        crop_box = _expanded_bbox(list(event.get("bbox") or []), width=width, height=height)
+        thumbnail = frame
+        if crop_box is not None:
+            x1, y1, x2, y2 = crop_box
+            thumbnail = frame[y1:y2, x1:x2]
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"{_safe_file_stem(prefix)}_f{max(start_frame, 1)}.jpg"
+        if not cv2.imwrite(str(output_path), thumbnail):
+            return None
+        return output_path
+    finally:
+        capture.release()
 
 
 def require_database() -> None:
@@ -223,12 +420,12 @@ def queue_video_processing(task_id: int) -> None:
             task = session.get(VideoTask, task_id)
             if task is None:
                 return
-            service.use_runtime_options(
+            task_service = create_request_detection_service(
                 weights_path=task.weights_path,
                 imgsz=settings.default_imgsz,
                 max_upload_mb=settings.max_upload_mb,
             )
-        summary = service.process_video_file(
+        summary = task_service.process_video_file(
             source_path=task.source_video_path,
             output_path=task.output_video_path,
             conf=task.conf,
@@ -246,6 +443,49 @@ def queue_video_processing(task_id: int) -> None:
             row.num_detections = summary["num_detections"]
             row.summary_json = summary
             row.finished_at = utcnow()
+
+            smoking_events = summary.get("smoking_events", [])
+            if smoking_events:
+                from app.db import get_session_factory
+                alert_mgr = AlertManager(get_session_factory())
+                rule = session.query(AlertRule).filter(AlertRule.enabled == True).first()  # noqa: E712
+                if rule:
+                    fps = float(summary.get("fps") or 25.0)
+                    for evt in smoking_events:
+                        start_frame = int(evt.get("start_frame", evt.get("frame", 0)))
+                        end_frame = int(evt.get("end_frame", evt.get("frame", start_frame)))
+                        duration_frames = int(evt.get("duration_frames", max(end_frame - start_frame + 1, 1)))
+                        duration_seconds = float(evt.get("duration_seconds", duration_frames / max(fps, 1.0)))
+                        bbox_values = list(evt.get("bbox") or [0, 0, 0, 0])
+                        if len(bbox_values) < 4:
+                            bbox_values = [0, 0, 0, 0]
+                        bbox = tuple(float(value) for value in bbox_values[:4])
+                        if alert_mgr.should_trigger_alert(
+                            evt["score"],
+                            bbox,
+                            end_frame,
+                            fps,
+                            rule,
+                            duration_frames=duration_frames,
+                            session=session,
+                        ):
+                            thumbnail_path = create_alert_thumbnail_from_video(
+                                source_video_path=task.source_video_path,
+                                event={**evt, "start_frame": start_frame, "bbox": list(bbox)},
+                                output_dir=ALERT_THUMBNAIL_DIR,
+                                prefix=f"task_{task_id}_alert_{start_frame}_{end_frame}",
+                            )
+                            alert_mgr.create_alert_event(
+                                session,
+                                video_task_id=task_id,
+                                score=evt["score"],
+                                severity=evt["classification"],
+                                start_frame=start_frame,
+                                end_frame=end_frame,
+                                duration_seconds=duration_seconds,
+                                bbox=bbox,
+                                thumbnail_path=str(thumbnail_path) if thumbnail_path else "",
+                            )
     except Exception as exc:  # noqa: BLE001
         with session_scope() as session:
             row = session.get(VideoTask, task_id)
@@ -270,6 +510,7 @@ def startup_event() -> None:
                 max_upload_mb=10,
             )
             apply_runtime_model(session)
+            bootstrap_alert_rules(session)
             APP_STATE["default_model_id"] = settings.default_model_id
         APP_STATE["db_ready"] = True
         APP_STATE["db_error"] = ""
@@ -288,6 +529,11 @@ def index(request: Request) -> Any:
             "demo_config": load_demo_config(),
         },
     )
+
+
+@app.get("/alerts", response_class=HTMLResponse)
+def alerts_page(request: Request) -> Any:
+    return templates.TemplateResponse(request, "alerts.html", {})
 
 
 @app.get("/reports/video/{task_id}", response_class=HTMLResponse)
@@ -479,9 +725,8 @@ def delete_record(record_id: int) -> dict[str, Any]:
         source_path = Path(row.source_image_path) if row.source_image_path else None
         annotated_path = Path(row.annotated_image_path) if row.annotated_image_path else None
         session.delete(row)
-    for path in (source_path, annotated_path):
-        if path and path.exists():
-            path.unlink(missing_ok=True)
+    safe_unlink_runtime_file(source_path, allowed_roots=[RUNTIME.image_upload_dir])
+    safe_unlink_runtime_file(annotated_path, allowed_roots=[RUNTIME.image_result_dir])
     return {"message": "Record deleted."}
 
 
@@ -497,21 +742,20 @@ async def detect_image(
         raise HTTPException(status_code=400, detail="Please upload a valid image file.")
 
     try:
-        image_bytes = await file.read()
         with session_scope() as session:
             settings = settings_row(session)
             model = selected_model(session, model_id=model_id, settings=settings)
-            conf_value = conf if conf is not None else settings.default_conf
-            iou_value = iou if iou is not None else settings.default_iou
+            conf_value, iou_value = resolve_detection_thresholds(conf=conf, iou=iou, settings=settings)
             imgsz_value = settings.default_imgsz
             max_upload_mb = settings.max_upload_mb
+            image_bytes = await read_upload_bytes_limited(file, max_upload_mb=max_upload_mb, label="image")
 
-            service.use_runtime_options(
+            request_service = create_request_detection_service(
                 weights_path=model.weights_path if model else None,
                 imgsz=imgsz_value,
                 max_upload_mb=max_upload_mb,
             )
-            payload = service.detect_image_bytes(
+            payload = request_service.detect_image_bytes(
                 image_bytes,
                 filename=file.filename,
                 conf=conf_value,
@@ -531,7 +775,7 @@ async def detect_image(
                 status="completed",
                 model_id=model.id if model else None,
                 model_name=model.name if model else "",
-                weights_path=model.weights_path if model else str(service.weights_path),
+                weights_path=model.weights_path if model else str(request_service.weights_path),
                 conf=conf_value,
                 iou=iou_value,
                 source_image_path=str(source_path),
@@ -600,16 +844,19 @@ async def create_video_task(
     model_id: int | None = Form(default=None),
 ) -> JSONResponse:
     require_database()
-    video_bytes = await file.read()
 
     try:
         with session_scope() as session:
             settings = settings_row(session)
             model = selected_model(session, model_id=model_id, settings=settings)
-            conf_value = conf if conf is not None else settings.default_conf
-            iou_value = iou if iou is not None else settings.default_iou
-            service.use_runtime_options(max_upload_mb=settings.max_upload_mb)
-            service.validate_upload(
+            conf_value, iou_value = resolve_detection_thresholds(conf=conf, iou=iou, settings=settings)
+            video_bytes = await read_upload_bytes_limited(file, max_upload_mb=settings.max_upload_mb, label="video")
+            request_service = create_request_detection_service(
+                weights_path=model.weights_path if model else None,
+                imgsz=settings.default_imgsz,
+                max_upload_mb=settings.max_upload_mb,
+            )
+            request_service.validate_upload(
                 file.filename,
                 video_bytes,
                 allowed_suffixes={".mp4", ".avi", ".mov", ".mkv", ".webm"},
@@ -628,7 +875,7 @@ async def create_video_task(
                 status="queued",
                 model_id=model.id if model else None,
                 model_name=model.name if model else "",
-                weights_path=model.weights_path if model else str(service.weights_path),
+                weights_path=model.weights_path if model else str(request_service.weights_path),
                 conf=conf_value,
                 iou=iou_value,
                 source_video_path=str(source_path),
@@ -639,9 +886,163 @@ async def create_video_task(
             session.flush()
             task_payload = serialize_video_task(task)
             background_tasks.add_task(queue_video_processing, task.id)
+    except HTTPException:
+        raise
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return JSONResponse({"message": "Video task queued.", "task": task_payload}, status_code=202)
+
+
+# --- Alert API Endpoints ---
+
+
+@app.get("/api/alerts/rules")
+def get_alert_rules() -> JSONResponse:
+    with session_scope() as session:
+        rules = session.query(AlertRule).all()
+        return JSONResponse([
+            {
+                "id": r.id,
+                "name": r.name,
+                "enabled": r.enabled,
+                "score_threshold": r.score_threshold,
+                "min_duration_frames": r.min_duration_frames,
+                "cooldown_seconds": r.cooldown_seconds,
+                "monitor_zones": r.monitor_zones,
+                "ignore_zones": r.ignore_zones,
+                "notification_channels": r.notification_channels,
+            }
+            for r in rules
+        ])
+
+
+class AlertRuleCreate(BaseModel):
+    name: str
+    enabled: bool = True
+    score_threshold: float = Field(default=70.0, ge=0, le=100)
+    min_duration_frames: int = Field(default=3, ge=1)
+    cooldown_seconds: int = Field(default=60, ge=0)
+    monitor_zones: list | None = None
+    ignore_zones: list | None = None
+    notification_channels: list[str] = Field(default_factory=lambda: ["log", "database"])
+
+
+@app.post("/api/alerts/rules", status_code=201)
+def create_alert_rule(body: AlertRuleCreate) -> JSONResponse:
+    with session_scope() as session:
+        rule = AlertRule(
+            name=body.name,
+            enabled=body.enabled,
+            score_threshold=body.score_threshold,
+            min_duration_frames=body.min_duration_frames,
+            cooldown_seconds=body.cooldown_seconds,
+            monitor_zones=body.monitor_zones,
+            ignore_zones=body.ignore_zones,
+            notification_channels=body.notification_channels,
+        )
+        session.add(rule)
+        session.flush()
+        return JSONResponse({"id": rule.id, "name": rule.name}, status_code=201)
+
+
+@app.put("/api/alerts/rules/{rule_id}")
+def update_alert_rule(rule_id: int, body: AlertRuleCreate) -> JSONResponse:
+    with session_scope() as session:
+        rule = session.get(AlertRule, rule_id)
+        if rule is None:
+            raise HTTPException(status_code=404, detail="Rule not found")
+        if rule.name == DEFAULT_ALERT_RULE_NAME and not body.enabled:
+            raise HTTPException(status_code=400, detail="Default alert rule cannot be disabled.")
+        rule.name = body.name
+        rule.enabled = body.enabled
+        rule.score_threshold = body.score_threshold
+        rule.min_duration_frames = body.min_duration_frames
+        rule.cooldown_seconds = body.cooldown_seconds
+        rule.monitor_zones = body.monitor_zones
+        rule.ignore_zones = body.ignore_zones
+        rule.notification_channels = body.notification_channels
+        return JSONResponse({"id": rule.id, "name": rule.name})
+
+
+@app.delete("/api/alerts/rules/{rule_id}", status_code=204)
+def delete_alert_rule(rule_id: int) -> None:
+    with session_scope() as session:
+        rule = session.get(AlertRule, rule_id)
+        if rule is None:
+            raise HTTPException(status_code=404, detail="Rule not found")
+        if rule.name == DEFAULT_ALERT_RULE_NAME:
+            raise HTTPException(status_code=400, detail="Default alert rule cannot be deleted.")
+        session.delete(rule)
+
+
+@app.get("/api/alerts/events")
+def get_alert_events(status: str | None = None, limit: int = 50, offset: int = 0) -> JSONResponse:
+    with session_scope() as session:
+        query = session.query(AlertEvent).order_by(AlertEvent.created_at.desc())
+        if status:
+            query = query.filter(AlertEvent.status == status)
+        total = query.count()
+        events = query.offset(offset).limit(limit).all()
+        return JSONResponse({
+            "events": [
+                {
+                    "id": e.id,
+                    "video_task_id": e.video_task_id,
+                    "alert_type": e.alert_type,
+                    "severity": e.severity,
+                    "score": e.score,
+                    "start_frame": e.start_frame,
+                    "end_frame": e.end_frame,
+                    "duration_seconds": e.duration_seconds,
+                    "bbox": [e.bbox_x1, e.bbox_y1, e.bbox_x2, e.bbox_y2],
+                    "thumbnail_url": artifact_url(e.thumbnail_path),
+                    "status": e.status,
+                    "created_at": e.created_at.isoformat() if e.created_at else None,
+                }
+                for e in events
+            ],
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+        })
+
+
+@app.put("/api/alerts/events/{event_id}/confirm")
+def confirm_alert_event(event_id: int) -> JSONResponse:
+    with session_scope() as session:
+        event = session.get(AlertEvent, event_id)
+        if event is None:
+            raise HTTPException(status_code=404, detail="Alert event not found")
+        event.status = "confirmed"
+        event.confirmed_at = utcnow()
+        return JSONResponse({"id": event.id, "status": event.status})
+
+
+@app.put("/api/alerts/events/{event_id}/dismiss")
+def dismiss_alert_event(event_id: int) -> JSONResponse:
+    with session_scope() as session:
+        event = session.get(AlertEvent, event_id)
+        if event is None:
+            raise HTTPException(status_code=404, detail="Alert event not found")
+        event.status = "dismissed"
+        return JSONResponse({"id": event.id, "status": event.status})
+
+
+@app.get("/api/alerts/stats")
+def get_alert_stats() -> JSONResponse:
+    with session_scope() as session:
+        total = session.query(func.count(AlertEvent.id)).scalar() or 0
+        confirmed = session.query(func.count(AlertEvent.id)).filter(AlertEvent.status == "confirmed").scalar() or 0
+        dismissed = session.query(func.count(AlertEvent.id)).filter(AlertEvent.status == "dismissed").scalar() or 0
+        pending = session.query(func.count(AlertEvent.id)).filter(AlertEvent.status == "pending").scalar() or 0
+        fpr = dismissed / total if total > 0 else 0.0
+        return JSONResponse({
+            "total_events": total,
+            "confirmed": confirmed,
+            "dismissed": dismissed,
+            "pending": pending,
+            "false_positive_rate": round(fpr, 4),
+        })
